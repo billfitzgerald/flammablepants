@@ -24,7 +24,7 @@ use_accordion = "Y"
 remote_name = "./results/local"
 
 feed_source = ['https://www.politifact.com/rss/all/', 'https://www.factcheck.org/feed/', 'https://leadstories.com/atom.xml', 'https://www.snopes.com/feed']
-page_source = ['https://www.reuters.com/fact-check/', 'https://www.usatoday.com/news/factcheck/', 'https://www.bbc.com/news/reality_check']  
+page_source = ['https://www.reuters.com/fact-check/', 'https://www.usatoday.com/news/factcheck/']  
 
 old_source = "./results/published_stories.csv"
 results_output = './results/stories.csv'
@@ -103,15 +103,6 @@ def write_file(filename, content):
 	with open(filename,'w') as output_file:
 		output_file.write(content)
 
-'''
-def header_wp(user, password, filename):
-	credentials = user + ':' + password
-	token = base64.b64encode(credentials.encode())
-	header_json = {
-					'Authorization': 'Basic ' + token.decode('utf-8')
-					}
-	return header_json
-'''
 ## Get to work
 
 # driver profile
@@ -204,9 +195,6 @@ for ps in page_source:
 			lin_list = []
 			try:				
 				main = soup.find('div', {'gnt_pr'})
-				#print('\n *  *  *  *\n')
-				#print(main)
-				#print('\n *  *  *  *\n')
 				# Get top level story
 				try:
 					story_header = main.find('a', {'gnt_m_he'})
@@ -319,8 +307,6 @@ for ps in page_source:
 
 driver.quit()
 
-#df_source_raw.to_csv(results_output, index = False)
-
 ## Identify which posts have not been published
 
 df_published_records = pd.read_csv(old_source, delimiter=',', quotechar='"',)
@@ -370,18 +356,7 @@ for s in sources:
 
 	else:
 		report_entries_ind = f'<h3 id="{source_anchor}">Fact checks from {s}</h3>'
-	'''
-	<div class="lightweight-accordion" id="asdf">
-	    <details>
-	        <summary class="lightweight-accordion-title">
-	            <h3>SAccordion 1</h3>
-	        </summary>
-	        <div class="lightweight-accordion-body">
-	            <p>This is content. This is more content. <a href="https://www.funnymonkey.com">And a link!&#8221;</a></p>
-	        </div>
-	    </details>
-	</div>
-	'''
+
 	for p, q in df_entries.iterrows():
 		title = q['title']
 		published = q['published']
@@ -389,13 +364,7 @@ for s in sources:
 		summary = q['summary']
 		anchor = q['anchor']
 		report_entries_ind = report_entries_ind + f'\n<article id="{anchor}"><h4><a href="{link}" alt="Read {title} on {s}">{title}</a></h4>\n<p><b>Published <time datetime="{published}">{published}</time></b><br>{summary}</p><p>Read at <a href="{link}" alt="Read {title} on {s}">{s}</a></p></article>\n'
-		'''
-		print(title)
-		print(link)
-		print(summary)
-		print(published)
-		print('\n')
-		'''
+
 	if use_accordion == "Y":
 		report_entries_ind = report_entries_ind + '</div></details></div>'
 	else:
@@ -444,12 +413,4 @@ if create_remote_report == "Y":
 		print(f"There seems to be an issue with creating the post. This was the response code:\n{response_post}")
 else:
 	pass
-
-## Update df_published_records with all records from df_source_filtered
-'''
-combo = [df_published_records, df_source_filtered]
-df_published_records = pd.concat(combo)
-df_published_records.to_csv(old_source, index = False)
-'''
-## Overwrite df_published_records with new file
 
