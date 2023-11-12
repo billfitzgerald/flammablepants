@@ -27,7 +27,7 @@ remote_name = "./results/local"
 feed_source = ['https://www.politifact.com/rss/all/', 'https://www.factcheck.org/feed/', 'https://leadstories.com/atom.xml', 'https://www.snopes.com/feed']
 page_source = ['https://www.reuters.com/fact-check/', 'https://www.usatoday.com/news/factcheck/']  
 
-old_source = "./results/published_stories_test.csv"
+old_source = "./results/published_stories.csv"
 results_output = './results/stories.csv'
 
 published_domain = "https://www.flammablepants.com/"
