@@ -18,15 +18,16 @@ from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
 from selenium.common.exceptions import TimeoutException
 
-create_local_report = "Y"
+create_local_report = "N"
 create_remote_report = "Y"
-use_accordion = "Y"
+use_accordion = "Y" # this can be N in most cases
+publish_threshold = 2
 remote_name = "./results/local"
 
 feed_source = ['https://www.politifact.com/rss/all/', 'https://www.factcheck.org/feed/', 'https://leadstories.com/atom.xml', 'https://www.snopes.com/feed']
 page_source = ['https://www.reuters.com/fact-check/', 'https://www.usatoday.com/news/factcheck/']  
 
-old_source = "./results/published_stories.csv"
+old_source = "./results/published_stories_test.csv"
 results_output = './results/stories.csv'
 
 published_domain = "https://www.flammablepants.com/"
@@ -55,7 +56,7 @@ now_human = f'{month}-{day}-{year} at {hour}:{minute}'
 url_path = f'fact-check-{d.strftime("%B")}-{day}-{year}-at-{hour}{minute}{second}'
 output_name = remote_name + "_" + year + "_" + month + "_" + day + "_" + hour + "_" + minute + ".html" 
 
-blog_title = f'Fact Check - {d.strftime("%B")} {day}, {year} at {hour}:{minute}:{second}'
+blog_title = f'Collected Fact Checks on {d.strftime("%B")} {day}, {year} at {hour}:{minute}:{second}'
 
 post_url = published_domain + url_path
 
@@ -80,7 +81,6 @@ def moar_hash(value):
 	sendback = result.hexdigest()
 
 	return sendback
-
 
 def text_cleanup(to_be_cleaned):
 	cleansoup = BeautifulSoup(to_be_cleaned, 'lxml')
@@ -127,7 +127,6 @@ for fs in feed_source:
 				link = e.link
 				summary = e.summary
 				if fs == 'https://www.factcheck.org/feed/':
-					print(summary)
 					summary = text_cleanup(summary)
 				else:
 					pass
@@ -137,11 +136,6 @@ for fs in feed_source:
 				published_parsed = e.published_parsed
 				guid = e.id
 				guidislink = e.guidislink
-				print(title)
-				print(link)
-				print(summary)
-				print(published)
-				print(f'\n - - - \n')
 				anchor = moar_hash(link)
 				df_source_raw.loc[df_source_raw.shape[0]] = [source, title, link, summary, published, guid, anchor]
 
@@ -182,7 +176,6 @@ for ps in page_source:
 					base_time = s.find('time', {'datetime' : True})
 					published = base_time['datetime'] 
 					published = clean_date(published)
-					print(f'\n{title}\n{summary}\n{link}\n{published}\n')
 					anchor = moar_hash(link)
 					df_source_raw.loc[df_source_raw.shape[0]] = [source, title, link, summary, published, guid, anchor]
 			except:
@@ -255,7 +248,6 @@ for ps in page_source:
 							pass
 						guid = link
 						if published != "skip":
-							print(f'\n{title}\n{summary}\n{link}\n{published}\n')
 							anchor = moar_hash(link)
 							df_source_raw.loc[df_source_raw.shape[0]] = [source, title, link, summary, published, guid, anchor]
 						else:
@@ -265,7 +257,7 @@ for ps in page_source:
 
 			except:
 				print("USA Today borkage")
-		elif ps == 'https://www.bbc.com/news/reality_check':
+		elif ps == 'https://www.bbc.com/news/reality_check': #leaving this in in the hope that the BBC rebuilds their fact checking page
 			source = "BBC News"
 			try:
 				main = soup.find('div', {'aria-labelledby' : 'latest-updates'})
@@ -292,7 +284,6 @@ for ps in page_source:
 						s_hold = s_hold + "\n" + s.text
 					summary = s_hold.strip()
 					if link != "skip":
-						print(f'\n{title}\n{summary}\n{link}\n{published}\n')
 						anchor = moar_hash(link)
 						guid = link
 						df_source_raw.loc[df_source_raw.shape[0]] = [source, title, link, summary, published, guid, anchor]
@@ -314,6 +305,11 @@ published_ids = df_published_records['anchor'].unique()
 staged_ids = df_source_raw['anchor'].unique()
 
 new_posts = list(set(staged_ids).difference(published_ids))
+if publish_threshold > len(new_posts):
+	sys.exit("No new posts! Nothing to publish!")
+else:
+	pass
+
 
 ## Stage new posts in df_source_filtered
 
@@ -380,15 +376,11 @@ report_head = f'This report was run on {now_human}, and we have new fact checks 
 
 if create_local_report == "Y":
 	report_local = report_head + report_list_local + report_entries_all
-	print('\n\n-  -  -  -\n\n')
-	print(report_local)
 	write_file(output_name, report_local)
 
 if create_remote_report == "Y":
 	report = report_head + report_list + report_entries_all
-	print('\n\n-  -  -  -\n\n')
-	print(report)
-
+	
 	## Create blog post
 	credentials = user + ':' + password
 	token = base64.b64encode(credentials.encode())
@@ -405,7 +397,7 @@ if create_remote_report == "Y":
 
 	response_post = requests.post(url_post, headers=header, json=post)
 	if str(response_post) == "<Response [201]>":
-		print(f"** The blog post titled '{blog_title}' was created.\n")
+		print(f"\n** The blog post titled '{blog_title}' was created.\n")
 		combo = [df_published_records, df_source_filtered]
 		df_published_records = pd.concat(combo)
 		df_published_records.to_csv(old_source, index = False)
@@ -413,4 +405,3 @@ if create_remote_report == "Y":
 		print(f"There seems to be an issue with creating the post. This was the response code:\n{response_post}")
 else:
 	pass
-
