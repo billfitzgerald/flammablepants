@@ -21,7 +21,7 @@ from selenium.common.exceptions import TimeoutException
 create_local_report = "N"
 create_remote_report = "Y"
 use_accordion = "Y" # this can be N in most cases
-publish_threshold = 2
+publish_threshold = 1
 remote_name = "./results/local"
 
 feed_source = ['https://www.politifact.com/rss/all/', 'https://www.factcheck.org/feed/', 'https://leadstories.com/atom.xml', 'https://www.snopes.com/feed']
@@ -332,26 +332,45 @@ df_source_filtered.to_csv(results_output, index = False)
 
 sources = df_source_filtered['source'].unique()
 
-excerpt = f"We have {len(new_posts)} new Fact Checks from {len(sources)} sources. Come read what's happening!"
+counts = df_source_filtered['source'].value_counts()
+
+source_list = []
+
+for c, d in counts.iteritems():
+	entry = f'{c} || {d}'
+	source_list.append(entry)
+
+source_list = sorted(source_list)
+
+excerpt = f"We have {len(new_posts)} new Fact Checks from {len(source_list)} sources. Come read what's happening!"
 
 report_list = "<ul>"
 report_list_local = report_list
 report_entries_all = "\n"
 
-for s in sources:
+for a in source_list:
+	b = a.split(' || ')
+	s = (b[0])
+	s_count = (b[1])
+	print(type(s_count))
+	if s_count == "1":
+		p_factor = "post"
+	else:
+		p_factor = "posts"
+
 	print(f'\n***\n{s}\n')
 	source_anchor = clean_string(s)
 	source_anchor = compress_text(source_anchor)
-	report_list = report_list + f'<li><a href="{post_url}#{source_anchor}" alt="See updates from {s}">{s}</a></li>\n'
-	report_list_local = report_list_local + f'<li><a href="#{source_anchor}" alt="See updates from {s}">{s}</a></li>\n'
+	report_list = report_list + f'<li><a href="{post_url}#{source_anchor}" alt="See {s_count} updates from {s}">{s}</a></li>\n'
+	report_list_local = report_list_local + f'<li><a href="#{source_anchor}" alt="See {s_count} updates from {s}">{s}</a></li>\n'
 	df_entries = df_source_filtered[(df_source_filtered['source'] == s)]
 	df_entries = df_entries.sort_values(by='published', ascending=False)
 	#print(df_entries.info())
 	if use_accordion == "Y":
-		report_entries_ind = f'<div class="lightweight-accordion" id="{source_anchor}"><details><summary class="lightweight-accordion-title"><span style="color: #eb3a09;">Fact checks from {s}</span></summary><div class="lightweight-accordion-body">'
+		report_entries_ind = f'<div class="lightweight-accordion" id="{source_anchor}"><details><summary class="lightweight-accordion-title"><span style="color: #eb3a09;">Fact checks from {s} - {s_count} new {p_factor}</span></summary><div class="lightweight-accordion-body">'
 
 	else:
-		report_entries_ind = f'<h3 id="{source_anchor}">Fact checks from {s}</h3>'
+		report_entries_ind = f'<h3 id="{source_anchor}">Fact checks from {s} - {s_count} new {p_factor}</h3>'
 
 	for p, q in df_entries.iterrows():
 		title = q['title']
